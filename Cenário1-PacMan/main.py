@@ -36,6 +36,15 @@ maze = [
     [0,1,0,0,0],
 ]
 
+# bipartido ?
+# Grafo simples
+# Rotulado
+# Não Orientado
+# Não Ponderado
+# Desconexo
+
+
+
 #  0   1   2   3   4
 #  5  (X) (X)  8  (X)
 # 10  (X) 12  13  14
