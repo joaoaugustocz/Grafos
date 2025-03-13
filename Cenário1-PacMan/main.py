@@ -476,9 +476,64 @@ def animate_path(screen, color, path, predecessor, dist):
     for node in path:
         color[node] = 'PATH'
         draw_grid(screen, color)
-        draw_tree_with_positions(screen, predecessor, dist)
+        #draw_tree_with_positions(screen, predecessor, dist)
         pygame.display.update()
         wait_for_right_key()
+
+def inverter_setas_verdes(screen, predecessor, dist, green_nodes):
+    """
+    Redesenha a área do grafo invertendo o sentido das setas somente
+    para as arestas cujos dois nós (o nó e seu predecessor) pertencem ao caminho verde.
+    As demais arestas permanecem na orientação normal.
+    """
+    tree_area = pygame.Rect(GRID_WIDTH, 0, TREE_WIDTH, HEIGHT)
+    pygame.draw.rect(screen, (220,220,220), tree_area)
+    
+    font = pygame.font.SysFont(None, TAM_FonteNo)
+    layers = {}
+    for node, d in dist.items():
+        if d is not None:
+            layers.setdefault(d, []).append(node)
+    
+    max_dist = max(d for d in dist.values() if d is not None) if dist else 0
+    layer_spacing = EspacamentoCamadaNos
+    node_spacing  = EspacamentoEntreNos
+    center_x = GRID_WIDTH + TREE_WIDTH // 2
+    positions = {}
+    
+    # Recalcula as posições de cada nó na árvore
+    for d in range(max_dist+1):
+        if d not in layers:
+            continue
+        layer_nodes = layers[d]
+        y = 30 + d * layer_spacing
+        k = len(layer_nodes)
+        start_x = center_x - (k-1) * node_spacing // 2
+        for i, node in enumerate(layer_nodes):
+            x = start_x + i * node_spacing
+            positions[node] = (x, y)
+            # Desenha o nó: se faz parte do caminho verde, pinta de verde; senão, azul.
+            node_color = GREEN if node in green_nodes else (0,0,255)
+            pygame.draw.circle(screen, node_color, (x, y), TAM_No)
+            idx = node_index(*node)
+            text_surface = font.render(str(idx), True, (255,255,255))
+            text_rect = text_surface.get_rect(center=(x, y))
+            screen.blit(text_surface, text_rect)
+    
+    # Desenha as setas: inverte a direção somente se ambos os nós estão no caminho verde.
+    for node, pred in predecessor.items():
+        if pred is None:
+            continue
+        if node in positions and pred in positions:
+            if node in green_nodes and pred in green_nodes:
+                # Inverte a seta: desenha de (posição do nó) para (posição do predecessor)
+                draw_arrow(screen, positions[pred], positions[node], color=GREEN, thickness=2, node_radius=TAM_No)
+            else:
+                # Desenha normalmente: de predecessor para o nó
+                draw_arrow(screen, positions[node], positions[pred], color=(0,0,0), thickness=2, node_radius=TAM_No)
+    
+    pygame.display.update()
+
 
 
 def animate_tree_path_reverse(screen, predecessor, dist, path):
@@ -550,7 +605,9 @@ def animate_tree_path_reverse(screen, predecessor, dist, path):
         pygame.display.update()
         wait_for_right_key()  # Aguarda o pressionamento da seta para avançar o próximo passo
 
-
+   # Ao final, inverte o sentido das setas apenas para as arestas que conectam nós do caminho verde
+    inverter_setas_verdes(screen, predecessor, dist, green_nodes)
+    wait_for_right_key()
 # ----------------------------------------------------
 # Main
 # ----------------------------------------------------
@@ -564,8 +621,8 @@ def main():
     
     # 2) Anima o caminho final em verde, passo a passo com a tecla seta para a direita
     if path:
-        animate_path(screen, color, path, predecessor, dist)
         animate_tree_path_reverse(screen, predecessor, dist, path)
+        animate_path(screen, color, path, predecessor, dist)
     
     # 3) Mantém a janela aberta até o usuário fechar
     running = True
@@ -575,7 +632,6 @@ def main():
                 running = False
         
         draw_grid(screen, color)
-        draw_tree_with_positions(screen, predecessor, dist)
         pygame.display.update()
         pygame.time.wait(50)
     
