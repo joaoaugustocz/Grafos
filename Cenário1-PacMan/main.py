@@ -11,18 +11,16 @@ CELL_SIZE = WIDTH // COLS # Tamanho de cada célula na tela
 
 # Cores (R, G, B)
 WHITE      = (240, 240, 240)  # Não visitado
-LIGHT_GRAY = (180, 180, 180)  # Descoberto (GRAY no pseudocódigo)
+LIGHT_GRAY = (180, 180, 180)  # Descoberto (GRAY do pseudocódigo)
 DARK_GRAY  = (50,  50,  50)    # Parede
-BLACK      = (0, 0, 0)   # Finalizado
+BLACK      = (0, 0, 0)         # Finalizado
 RED        = (255, 0,   0)     # Fantasma (início)
 YELLOW     = (255, 255, 0)     # Pac-Man (destino)
 GREEN      = (0,   255, 0)     # Caminho final
 TEXT_COLOR = (0,   0,   0)     # Cor do texto dentro das células
 
 # Tempo de pausa (ms) para a animação do BFS
-ANIMATION_DELAY = 500
-# Tempo de pausa (ms) para a animação do caminho final
-PATH_DELAY = 300
+ANIMATION_DELAY = 100
 
 # ----------------------------------------------------
 # Labirinto (grid):
@@ -31,16 +29,16 @@ PATH_DELAY = 300
 # ----------------------------------------------------
 maze = [
     [0,0,0,0,1],
-    [0,1,1,1,1],
-    [0,1,0,1,1],
-    [0,0,0,1,1],
+    [0,0,0,0,1],
+    [0,1,0,0,0],
+    [0,0,0,0,1],
     [1,1,0,0,0],
 ]
 
 # Início (ex.: Fantasma)
 start = (0, 0)
 # Destino (ex.: Pac-Man)
-goal = (4, 3)
+goal = (2, 4)
 
 # ----------------------------------------------------
 # Mapeamento do estado do BFS -> cor de exibição
@@ -48,8 +46,8 @@ goal = (4, 3)
 color_map = {
     'WHITE': WHITE,      # Não visitado
     'GRAY':  LIGHT_GRAY, # Descoberto
-    'BLACK': DARK_GRAY,      # Finalizado
-    'WALL':  BLACK,  # Parede
+    'BLACK': DARK_GRAY,  # Finalizado
+    'WALL':  BLACK,      # Parede
     'PATH':  GREEN       # Caminho final
 }
 
@@ -106,11 +104,15 @@ def draw_grid(screen, color):
 # Retorna os vizinhos válidos (4 direções)
 # ----------------------------------------------------
 def get_neighbors(r, c):
-    direcoes = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-    for dr, dc in direcoes:
-        nr, nc = r + dr, c + dc
-        if 0 <= nr < ROWS and 0 <= nc < COLS:
-            yield nr, nc
+    direcoes = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Lista de movimentos: cima, baixo, esquerda e direita
+    for dr, dc in direcoes:                        # Itera sobre cada direção
+        nr, nc = r + dr, c + dc                     # Calcula a nova linha (nr) e nova coluna (nc) para o vizinho
+        if 0 <= nr < ROWS and 0 <= nc < COLS:        # Verifica se as coordenadas estão dentro dos limites do grid
+            yield nr, nc                           # Se estiverem, retorna (gera) esse vizinho
+            # o yield é bom pra economizar memoria
+
+
+
 
 # ----------------------------------------------------
 # BFS passo a passo, colorindo nós conforme pseudocódigo do professor
@@ -123,7 +125,7 @@ def bfs_visual(screen):
     predecessor = {}
     queue = deque()
 
-    # Define cor inicial de cada célula --> branco para caminho lire e Preto para parede
+    # Define cor inicial de cada célula --> branco para caminho livre e preto para parede
     for r in range(ROWS):
         for c in range(COLS):
             if maze[r][c] == 1:
@@ -133,14 +135,14 @@ def bfs_visual(screen):
 
     # Nó inicial
     color[start] = 'GRAY'
-    predecessor[start] = None #o pai do nó inicial n é ninguém
+    predecessor[start] = None  # o pai do nó inicial não é ninguém
     queue.append(start)
 
     found = False
 
     # Loop BFS
     while queue:
-        u = queue.popleft() #desempilha (proximo nó a analizar vizinhos)
+        u = queue.popleft()  # desempilha (próximo nó a analisar vizinhos)
 
         # Se u == goal, paramos
         if u == goal:
@@ -154,33 +156,49 @@ def bfs_visual(screen):
                 predecessor[v] = u
                 queue.append(v)
 
-        # Terminamos de explorar u(Todos os vizinhos de u foram descobertos)
+        # Terminamos de explorar u (todos os vizinhos de u foram descobertos)
         color[u] = 'BLACK'
 
         # Desenha o estado atual do BFS
         draw_grid(screen, color)
-        pygame.time.wait(ANIMATION_DELAY)
+        wait_for_right_key()
+        #pygame.time.wait(ANIMATION_DELAY)
 
     # Reconstruir o caminho se encontrado
-    path = []
-    if found:
-        node = goal
-        while node is not None:
-            path.append(node)
-            node = predecessor[node]
-        path.reverse()
+    path = []                           # Cria uma lista vazia para armazenar o caminho encontrado
+    if found:                           # Se o objetivo (goal) foi alcançado no BFS
+        node = goal                     # Inicia a reconstrução a partir do nó de destino (goal)
+        while node is not None:         # Enquanto houver um nó (até chegar ao início, onde predecessor é None)
+            path.append(node)           # Adiciona o nó atual à lista do caminho
+            node = predecessor[node]    # Atualiza o nó atual para o seu predecessor (nó anterior no caminho)
+    path.reverse()                      # Inverte a lista, para que o caminho fique na ordem correta: do início (start) ao destino (goal)
+
 
     return color, path
 
 # ----------------------------------------------------
-# Anima o caminho final passo a passo em verde
+# Função para esperar a tecla seta para a direita
+# ----------------------------------------------------
+def wait_for_right_key():
+    waiting = True
+    while waiting:
+        event = pygame.event.wait()
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RIGHT:
+                waiting = False
+
+# ----------------------------------------------------
+# Anima o caminho final passo a passo em verde aguardando tecla
 # ----------------------------------------------------
 def animate_path(screen, color, path):
-    # Para cada nó no caminho, atualizamos sua cor para 'PATH'
+    # Para cada nó no caminho, atualizamos sua cor para 'PATH' e aguardamos a tecla
     for node in path:
         color[node] = 'PATH'
         draw_grid(screen, color)
-        pygame.time.wait(PATH_DELAY)
+        wait_for_right_key()  # Aguarda o usuário apertar a seta para a direita
 
 # ----------------------------------------------------
 # Função principal
@@ -193,7 +211,7 @@ def main():
     # 1) Executa o BFS com visualização
     color, path = bfs_visual(screen)
 
-    # 2) Anima o caminho final em verde, passo a passo
+    # 2) Anima o caminho final em verde, passo a passo com a tecla seta para a direita
     if path:
         animate_path(screen, color, path)
 
