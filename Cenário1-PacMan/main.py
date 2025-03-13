@@ -21,9 +21,16 @@ DARK_GRAY  = (50,  50,  50)    # Parede ou finalizado
 BLACK      = (0, 0, 0)         # Fundo e/ou estado de parede
 RED        = (255, 0,   0)     # Fantasma (start)
 YELLOW     = (255, 255, 0)     # Pac-Man (goal)
-GREEN      = (0,   255, 0)     # Caminho final
+GREEN      = (60,   200, 60)     # Caminho final
 TEXT_COLOR = (0,   0,   0)     # Cor do texto
 
+# ----------------------------------------------------
+# Tamanhos
+# ----------------------------------------------------
+TAM_No = 30
+TAM_FonteNo = 40
+EspacamentoCamadaNos = 80
+EspacamentoEntreNos  = 90
 # ----------------------------------------------------
 # Labirinto (grid)
 # 0 -> livre; 1 -> parede
@@ -190,7 +197,7 @@ def draw_grid(screen, color):
 # Desenha uma linha com setinha
 # ----------------------------------------------------
 import math
-def draw_arrow(screen, start_pos, end_pos, color=(0,0,0), thickness=2, node_radius=15):
+def draw_arrow(screen, start_pos, end_pos, color=(0,0,0), thickness=2, node_radius=TAM_No):
     """
     Desenha uma seta de start_pos para end_pos,
     encurtando o início e o fim para não sobrepor os círculos dos nós.
@@ -255,7 +262,7 @@ def draw_tree(screen, predecessor, dist):
     tree_area = pygame.Rect(GRID_WIDTH, 0, TREE_WIDTH, HEIGHT)
     pygame.draw.rect(screen, (220, 220, 220), tree_area)
     
-    font = pygame.font.SysFont(None, 17)
+    font = pygame.font.SysFont(None, TAM_FonteNo)
     
     # Agrupa nós por distância
     layers = {}  # dict: distance -> [nós]
@@ -269,9 +276,9 @@ def draw_tree(screen, predecessor, dist):
     max_dist = max(d for d in dist.values() if d is not None) if dist else 0
     
     # Espaçamento vertical entre camadas
-    layer_spacing = 50
+    layer_spacing = EspacamentoCamadaNos
     # Espaçamento horizontal entre nós na mesma camada
-    node_spacing = 60
+    node_spacing = EspacamentoEntreNos
     
     for d in range(max_dist+1):
         if d not in layers:
@@ -289,7 +296,7 @@ def draw_tree(screen, predecessor, dist):
         for i, node in enumerate(layer_nodes):
             x = start_x + i * node_spacing
             # Desenha o nó como um círculo
-            pygame.draw.circle(screen, (0,0,255), (x, y), 15)
+            pygame.draw.circle(screen, (0,0,255), (x, y), TAM_No)
             
             # Índice do nó
             idx = node_index(*node)
@@ -320,7 +327,7 @@ def draw_tree_with_positions(screen, predecessor, dist):
     tree_area = pygame.Rect(GRID_WIDTH, 0, TREE_WIDTH, HEIGHT)
     pygame.draw.rect(screen, (220, 220, 220), tree_area)
     
-    font = pygame.font.SysFont(None, 17)
+    font = pygame.font.SysFont(None, TAM_FonteNo)
     
     # Agrupa nós por distância
     layers = {}
@@ -329,8 +336,8 @@ def draw_tree_with_positions(screen, predecessor, dist):
             layers.setdefault(d, []).append(node)
     
     max_dist = max(d for d in dist.values() if d is not None) if dist else 0
-    layer_spacing = 50
-    node_spacing  = 60
+    layer_spacing = EspacamentoCamadaNos
+    node_spacing  = EspacamentoEntreNos
     center_x      = GRID_WIDTH + TREE_WIDTH // 2
     
     # Dicionário que guardará a posição de cada nó
@@ -350,7 +357,7 @@ def draw_tree_with_positions(screen, predecessor, dist):
             # Armazena posição
             positions[node] = (x, y)
             # Desenha círculo
-            pygame.draw.circle(screen, (0,0,255), (x, y), 15)
+            pygame.draw.circle(screen, (0,0,255), (x, y), TAM_No)
             # Desenha índice
             idx = node_index(*node)
             text_surface = font.render(str(idx), True, (255,255,255))
@@ -364,7 +371,7 @@ def draw_tree_with_positions(screen, predecessor, dist):
         if node in positions and pred in positions:
             start_pos = positions[node]
             end_pos   = positions[pred]
-            draw_arrow(screen, start_pos, end_pos, color=(0,0,0), thickness=2, node_radius=15)
+            draw_arrow(screen, start_pos, end_pos, color=(0,0,0), thickness=2, node_radius=TAM_No)
 
 # ----------------------------------------------------
 # Retorna os vizinhos válidos (4 direções)
@@ -494,7 +501,7 @@ def animate_tree_path_reverse(screen, predecessor, dist, path):
         tree_area = pygame.Rect(GRID_WIDTH, 0, TREE_WIDTH, HEIGHT)
         pygame.draw.rect(screen, (220, 220, 220), tree_area)
     
-        font = pygame.font.SysFont(None, 17)
+        font = pygame.font.SysFont(None, TAM_FonteNo)
     
         # Agrupa os nós por distância (camadas)
         layers = {}
@@ -503,8 +510,8 @@ def animate_tree_path_reverse(screen, predecessor, dist, path):
                 layers.setdefault(d, []).append(node_key)
     
         max_dist = max(d for d in dist.values() if d is not None) if dist else 0
-        layer_spacing = 50
-        node_spacing  = 60
+        layer_spacing = EspacamentoCamadaNos
+        node_spacing  = EspacamentoEntreNos
         center_x      = GRID_WIDTH + TREE_WIDTH // 2
     
         positions = {}
@@ -522,7 +529,7 @@ def animate_tree_path_reverse(screen, predecessor, dist, path):
                 positions[node_key] = (x, y)
                 # Se o nó estiver no conjunto green_nodes, ele é desenhado em verde; caso contrário, em azul.
                 node_color = GREEN if node_key in green_nodes else (0, 0, 255)
-                pygame.draw.circle(screen, node_color, (x, y), 15)
+                pygame.draw.circle(screen, node_color, (x, y), TAM_No)
                 idx = node_index(*node_key)
                 text_surface = font.render(str(idx), True, (255, 255, 255))
                 text_rect = text_surface.get_rect(center=(x, y))
@@ -538,7 +545,7 @@ def animate_tree_path_reverse(screen, predecessor, dist, path):
                 arrow_color = GREEN if (node_key in green_nodes and pred in green_nodes) else (0, 0, 0)
                 start_pos = positions[pred]
                 end_pos = positions[node_key]
-                draw_arrow(screen, end_pos, start_pos, color=arrow_color, thickness=2, node_radius=15)
+                draw_arrow(screen, end_pos, start_pos, color=arrow_color, thickness=2, node_radius=TAM_No)
     
         pygame.display.update()
         wait_for_right_key()  # Aguarda o pressionamento da seta para avançar o próximo passo
