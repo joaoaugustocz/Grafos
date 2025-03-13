@@ -43,13 +43,11 @@ maze = [
     [0,1,0,0,0],
 ]
 
-# bipartido ?
 # Grafo simples
 # Rotulado
 # Não Orientado
 # Não Ponderado
 # Desconexo
-
 
 
 #  0   1   2   3   4
