@@ -51,18 +51,22 @@ color_map = {
 }
 
 # ----------------------------------------------------
-# Função para obter índice do nó (didático)
+# Converte (row, col) para índice do nó (apenas didático)
+# Ex.: linha=2, coluna=3 -> num_nó = 2*COLS + 3
 # ----------------------------------------------------
 def node_index(r, c):
     return r * COLS + c
 
 # ----------------------------------------------------
-# Desenha o grid (lado esquerdo)
+# Função para desenhar o grid na tela
+#   - Usa as cores de acordo com o dicionário color[]
+#   - Desenha também o número do nó dentro do quadrado
+#   - Desenha o início (Fantasma) e o fim (Pac-Man) por cima
 # ----------------------------------------------------
 def draw_grid(screen, color):
     # Fundo do grid
     pygame.draw.rect(screen, BLACK, (0, 0, GRID_WIDTH, HEIGHT))
-    font = pygame.font.SysFont(None, 17)
+    font = pygame.font.SysFont(None, 17) # Fonte pequena para texto nos nós
     
     for r in range(ROWS):
         for c in range(COLS):
@@ -71,21 +75,22 @@ def draw_grid(screen, color):
             cell_state = color[(r, c)]
             cell_color = color_map[cell_state]
             
+            # Desenha o retângulo da célula
             pygame.draw.rect(screen, cell_color, (x, y, CELL_SIZE, CELL_SIZE))
             
-            # Índice do nó
+            # Escreve o índice do nó no centro da célula
             text_surface = font.render(str(node_index(r, c)), True, TEXT_COLOR)
             text_rect = text_surface.get_rect(center=(x + CELL_SIZE//2, y + CELL_SIZE//2))
             screen.blit(text_surface, text_rect)
     
-    # Redesenha start (fantasma) em vermelho
+     # Desenha o início (fantasma) em vermelho   
     sx, sy = start[1] * CELL_SIZE, start[0] * CELL_SIZE
     pygame.draw.rect(screen, RED, (sx, sy, CELL_SIZE, CELL_SIZE))
     s_text = font.render(str(node_index(start[0], start[1])), True, (0,0,0))
     s_rect = s_text.get_rect(center=(sx + CELL_SIZE//2, sy + CELL_SIZE//2))
     screen.blit(s_text, s_rect)
     
-    # Redesenha goal (Pac-Man) em amarelo
+    # Desenha o destino (Pac-Man) em amarelo
     gx, gy = goal[1] * CELL_SIZE, goal[0] * CELL_SIZE
     pygame.draw.rect(screen, YELLOW, (gx, gy, CELL_SIZE, CELL_SIZE))
     g_text = font.render(str(node_index(goal[0], goal[1])), True, (0,0,0))
@@ -273,14 +278,15 @@ def draw_tree_with_positions(screen, predecessor, dist):
             draw_arrow(screen, start_pos, end_pos, color=(0,0,0), thickness=2, node_radius=15)
 
 # ----------------------------------------------------
-# Retorna vizinhos (4 direções)
+# Retorna os vizinhos válidos (4 direções)
 # ----------------------------------------------------
 def get_neighbors(r, c):
-    direcoes = [(-1,0), (1,0), (0,-1), (0,1)]
-    for dr, dc in direcoes:
-        nr, nc = r+dr, c+dc
-        if 0 <= nr < ROWS and 0 <= nc < COLS:
-            yield nr, nc
+    direcoes = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Lista de movimentos: cima, baixo, esquerda e direita
+    for dr, dc in direcoes:                        # Itera sobre cada direção
+        nr, nc = r + dr, c + dc                     # Calcula a nova linha (nr) e nova coluna (nc) para o vizinho
+        if 0 <= nr < ROWS and 0 <= nc < COLS:        # Verifica se as coordenadas estão dentro dos limites do grid
+            yield nr, nc                           # Se estiverem, retorna (gera) esse vizinho
+            # o yield é bom pra economizar memoria
 
 # ----------------------------------------------------
 # Espera a tecla seta para a direita
@@ -300,30 +306,34 @@ def wait_for_right_key():
 # BFS passo a passo (aguardando seta), e guarda distâncias
 # ----------------------------------------------------
 def bfs_visual(screen):
-    color       = {}
+    # Inicialização
+    color = {}
     predecessor = {}
+    queue = deque()
     dist        = {}  # armazena distância do start
     
-    # Inicializa
+    # Define cor inicial de cada célula --> branco para caminho livre e preto para parede
     for r in range(ROWS):
         for c in range(COLS):
             if maze[r][c] == 1:
-                color[(r,c)] = 'WALL'
-                dist[(r,c)]  = None
+                color[(r, c)] = 'WALL'   # Parede
             else:
-                color[(r,c)] = 'WHITE'
-                dist[(r,c)]  = None
+                color[(r, c)] = 'WHITE'  # Não visitado
+            dist[(r,c)]  = None
+
     
-    queue = deque()
+    
+    # Nó inicial
     color[start] = 'GRAY'
-    predecessor[start] = None
+    predecessor[start] = None  # o pai do nó inicial não é ninguém
     dist[start] = 0
     queue.append(start)
     
     found = False
     
+    # Loop BFS
     while queue:
-        u = queue.popleft()
+        u = queue.popleft()  # desempilha (próximo nó a analisar vizinhos)
         
         # Se chegamos no goal
         if u == goal:
@@ -333,29 +343,32 @@ def bfs_visual(screen):
         
         # Explora vizinhos
         for v in get_neighbors(*u):
-            if color[v] == 'WHITE':
+            if color[v] == 'WHITE':  # Ainda não descoberto
                 color[v] = 'GRAY'
                 predecessor[v] = u
                 dist[v] = dist[u] + 1 if dist[u] is not None else 0
                 queue.append(v)
         
-        # Finaliza u
+        # Terminamos de explorar u (todos os vizinhos de u foram descobertos)
         color[u] = 'BLACK'
         
-        # Desenha a cada passo e espera tecla
+        # Desenha a cada passo e espera a tecla
         draw_grid(screen, color)
         draw_tree_with_positions(screen, predecessor, dist)
         pygame.display.update()
         wait_for_right_key()  # Aguardar seta → para avançar
     
-    # Reconstruir caminho, se encontrado
-    path = []
-    if found:
-        node = goal
-        while node is not None:
-            path.append(node)
-            node = predecessor[node]
-        path.reverse()
+
+    # Reconstruir o caminho se encontrado
+    path = []                           # Cria uma lista vazia para armazenar o caminho encontrado
+    if found:                           # Se o objetivo (goal) foi alcançado no BFS
+        node = goal                     # Inicia a reconstrução a partir do nó de destino (goal)
+        while node is not None:         # Enquanto houver um nó (até chegar ao início, onde predecessor é None)
+            path.append(node)           # Adiciona o nó atual à lista do caminho
+            node = predecessor[node]    # Atualiza o nó atual para o seu predecessor (nó anterior no caminho)
+    path.reverse()                      # Inverte a lista, para que o caminho fique na ordem correta: do início (start) ao destino (goal)
+
+
     
     return color, path, predecessor, dist
 
@@ -363,6 +376,7 @@ def bfs_visual(screen):
 # Anima o caminho final no grid (aguardando seta)
 # ----------------------------------------------------
 def animate_path(screen, color, path, predecessor, dist):
+    # Para cada nó no caminho, atualizamos sua cor para 'PATH' e aguardamos a tecla
     for node in path:
         color[node] = 'PATH'
         draw_grid(screen, color)
@@ -378,13 +392,14 @@ def main():
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("BFS com Visualização de Árvore em Camadas")
     
+    # 1) Executa o BFS com visualização
     color, path, predecessor, dist = bfs_visual(screen)
     
-    # Anima o caminho final
+    # 2) Anima o caminho final em verde, passo a passo com a tecla seta para a direita
     if path:
         animate_path(screen, color, path, predecessor, dist)
     
-    # Loop final
+    # 3) Mantém a janela aberta até o usuário fechar
     running = True
     while running:
         for event in pygame.event.get():
