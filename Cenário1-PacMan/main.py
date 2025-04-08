@@ -131,7 +131,7 @@ def criarMatrizAdjacencia(ListaAdj):
 # livre entre eles (isto é, se ambas as células não forem paredes).
 
 start = (0, 0)
-goal  = (4, 4)
+goal  = (3, 2)
 
 # ----------------------------------------------------
 # Mapeamento de estado (grid) -> cor
@@ -141,7 +141,8 @@ color_map = {
     'GRAY':  LIGHT_GRAY, # descoberto
     'BLACK': DARK_GRAY,  # finalizado
     'WALL':  BLACK,      # parede
-    'PATH':  GREEN       # caminho final
+    'PATH':  GREEN,       # caminho final
+    'RED' : RED
 }
 
 # ----------------------------------------------------
@@ -424,7 +425,6 @@ def bfs_visual(screen):
     queue.append(start)
     
     found = False
-    
     # Loop BFS
     while queue:
         u = queue.popleft()  # desempilha (próximo nó a analisar vizinhos)
@@ -433,7 +433,7 @@ def bfs_visual(screen):
         if u == goal:
             found = True
             # (não necessariamente paramos BFS aqui se quiser visitar todos)
-            break
+            #break
         
         # Explora vizinhos
         for v in get_neighbors(*u):
@@ -471,8 +471,16 @@ def bfs_visual(screen):
 # ----------------------------------------------------
 def animate_path(screen, color, path, predecessor, dist):
     # Para cada nó no caminho, atualizamos sua cor para 'PATH' e aguardamos a tecla
+    i = 0
     for node in path:
-        color[node] = 'PATH'
+        if i == 0:
+            color[node] = 'BLACK'
+        else:
+            color[path[i - 1]] = 'BLACK'
+            color[node] = 'RED'
+        i += 1
+
+        #color[node] = 'PATH'
         draw_grid(screen, color)
         #draw_tree_with_positions(screen, predecessor, dist)
         pygame.display.update()
@@ -613,7 +621,6 @@ def main():
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("BFS com Visualização de Árvore em Camadas")
-    
     # 1) Executa o BFS com visualização
     color, path, predecessor, dist = bfs_visual(screen)
     
